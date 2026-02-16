@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>마블 팜: 얼티밋 오디오</title>
+    
+    <!-- PWA 테마 및 모바일 설정 -->
+    <meta name="theme-color" content="#0f172a">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="마블팜">
+    <meta name="description" content="스파이더맨과 헐크와 함께하는 농장 액션 퍼즐 게임!">
+    
+    <!-- 아이콘 자리표시자 (스크립트에서 동적 교체됨) -->
+    <link rel="icon" type="image/png" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🕷️</text></svg>">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🕷️</text></svg>">
+    
+    <!-- 매니페스트 자리표시자 -->
+    <link rel="manifest" id="dynamic-manifest">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bangers&family=Black+Han+Sans&display=swap');
+
+        body {
+            font-family: 'Black Han Sans', sans-serif;
+            background-color: #0f172a;
+            touch-action: none;
+            user-select: none;
+            overflow: hidden;
+            /* iOS 안전 영역 대응 */
+            padding-bottom: env(safe-area-inset-bottom);
+        }
+
+        .comic-font { font-family: 'Bangers', cursive; letter-spacing: 1.5px; }
+
+        .marvel-btn {
+            transform: skew(-10deg);
+            border: 4px solid black;
+            box-shadow: 5px 5px 0px black;
+            transition: all 0.1s;
+        }
+        .marvel-btn:active {
+            transform: skew(-10deg) translate(3px, 3px);
+            box-shadow: 2px 2px 0px black;
+        }
+        .marvel-btn-text {
+            transform: skew(10deg);
+        }
+
+        #game-area {
+            position: relative;
+            width: 100%;
+            max-width: 400px;
+            aspect-ratio: 1/1;
+            margin-top: 10px;
+        }
+
+        #game-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            width: 100%;
+            height: 100%;
+        }
+
+        .tile {
+            background: #451a03;
+            border-radius: 12px;
+            position: relative;
+            box-shadow: inset 0 0 10px rgba(0,0,0,0.5);
+            border: 3px solid #78350f;
+            cursor: pointer;
+            overflow: hidden;
+            /* 터치 반응 속도 향상 */
+            touch-action: manipulation; 
+        }
+
+        #hero-container {
+            position: absolute;
+            width: 70px; height: 70px;
+            pointer-events: none;
+            transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            z-index: 50;
+            filter: drop-shadow(0 5px 5px rgba(0,0,0,0.5));
+        }
+
+        /* 스킨 스타일 유지 */
+        .spidey-head {
+            width: 100%; height: 100%;
+            background: #ef4444;
+            border-radius: 45% 45% 50% 50%;
+            border: 3px solid #7f1d1d;
+            position: relative;
+            overflow: hidden;
+        }
+        .spidey-eye {
+            position: absolute; top: 25%; width: 35%; height: 40%;
+            background: white; border: 4px solid black;
+            border-radius: 0 100% 0 100%; 
+        }
+        .eye-l { left: 10%; transform: rotate(-15deg); }
+        .eye-r { right: 10%; transform: scaleX(-1) rotate(-15deg); }
+
+        .hulk-head {
+            width: 100%; height: 100%;
+            background: #65a30d;
+            border-radius: 12px;
+            border: 3px solid #365314;
+            position: relative;
+            overflow: hidden;
+        }
+        .hulk-hair {
+            position: absolute; top: 0; width: 100%; height: 35%;
+            background: #1a2e05;
+            clip-path: polygon(0 0, 100% 0, 100% 80%, 90% 65%, 80% 90%, 70% 65%, 60% 85%, 50% 65%, 40% 85%, 30% 65%, 20% 85%, 10% 65%, 0 80%);
+        }
+        .hulk-brow {
+            position: absolute; top: 42%; width: 30%; height: 6px;
+            background: #1a2e05; border-radius: 2px;
+        }
+        .hb-l { left: 12%; transform: rotate(8deg); }
+        .hb-r { right: 12%; transform: rotate(-8deg); }
+        .hulk-eye {
+            position: absolute; top: 50%; width: 18%; height: 10px;
+            background: white; border: 1.5px solid black; border-radius: 2px;
+        }
+        .he-l { left: 18%; }
+        .he-r { right: 18%; }
+        .hulk-mouth {
+            position: absolute; bottom: 18%; left: 30%; width: 40%; height: 6px;
+            background: #365314; border-radius: 10px;
+        }
+
+        .spider-sense {
+            position: absolute; top: -25px; left: 50%; transform: translateX(-50%);
+            font-size: 24px; color: #facc15; font-weight: bold;
+            animation: wiggle 0.2s infinite; z-index: 60; text-shadow: 0 0 5px red;
+        }
+        @keyframes wiggle { 0%, 100% { transform: translate(-50%) rotate(-10deg); } 50% { transform: translate(-50%) rotate(10deg); } }
+
+        .bomb-pulse { animation: pulse-red 0.8s infinite; border-color: red !important; }
+        @keyframes pulse-red { 0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); } 100% { box-shadow: 0 0 0 15px rgba(255, 0, 0, 0); } }
+
+        .web-shot {
+            position: absolute; height: 4px; background: white;
+            transform-origin: 0 50%; z-index: 40; pointer-events: none;
+            box-shadow: 0 0 5px rgba(255,255,255,0.8);
+        }
+
+        .progress-bar { transition: width 1s linear; }
+        .modal-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.85);
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            z-index: 200;
+        }
+        .hidden { display: none !important; }
+        
+        #loading-indicator {
+            position: fixed; bottom: 20px; left: 20px; font-size: 10px; color: gray;
+        }
+        
+        /* PWA Install Button Style */
+        #pwa-install-btn {
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            color: #000;
+            border: 2px solid #fff;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-top: 15px;
+            animation: pulse-gold 2s infinite;
+            display: none; /* JS로 제어 */
+        }
+        @keyframes pulse-gold {
+            0% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0.7); }
+            70% { box-shadow: 0 0 0 10px rgba(255, 215, 0, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(255, 215, 0, 0); }
+        }
+    </style>
+</head>
+<body class="h-screen w-screen flex flex-col items-center justify-center text-white overflow-hidden bg-gray-900">
+
+    <div id="loading-indicator">데이터 동기화 중...</div>
+
+    <!-- HUD -->
+    <div class="w-full max-w-md p-4 absolute top-0 z-20 pt-safe-top">
+        <div class="flex justify-between items-end mb-1">
+            <div class="text-yellow-400 comic-font text-xl">LEVEL <span id="level-display">1</span>/10</div>
+            <div class="text-gray-300 text-sm">TARGET: $<span id="target-score">100</span></div>
+            <div class="text-red-400 font-bold text-xl">⏱️ <span id="time-display">60</span>s</div>
+        </div>
+        
+        <div class="w-full h-3 bg-gray-700 rounded-full overflow-hidden mb-3 border border-gray-600">
+            <div id="time-bar" class="h-full bg-green-500 progress-bar" style="width: 100%;"></div>
+        </div>
+
+        <div class="flex justify-between items-center bg-gray-800 p-3 rounded-xl border-2 border-black shadow-[4px_4px_0px_black]">
+            <div>
+                <div class="text-xs text-gray-400">EARNINGS</div>
+                <div class="text-2xl comic-font text-green-400">$<span id="score">0</span></div>
+            </div>
+            <div class="text-right">
+                <div class="text-xs text-gray-400">ULTIMATE</div>
+                <div class="text-xl comic-font text-blue-400" id="ult-gauge-text">0%</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 게임 영역 -->
+    <div id="game-area">
+        <div id="hero-container">
+            <div id="skin-spidey" class="spidey-head">
+                <div class="spidey-eye eye-l"></div>
+                <div class="spidey-eye eye-r"></div>
+                <div id="sense-icon" class="spider-sense hidden">⚡⚡⚡</div>
+            </div>
+            <div id="skin-hulk" class="hulk-head hidden">
+                <div class="hulk-hair"></div>
+                <div class="hulk-brow hb-l"></div>
+                <div class="hulk-brow hb-r"></div>
+                <div class="hulk-eye he-l"></div>
+                <div class="hulk-eye he-r"></div>
+                <div class="hulk-mouth"></div>
+            </div>
+        </div>
+
+        <div id="game-grid"></div>
+
+        <button id="btn-ultimate" onclick="useUltimate()" class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 rounded-full flex items-center justify-center hidden z-[100] shadow-[0_0_30px_rgba(255,255,255,0.8)] transition hover:scale-110 active:scale-90 bg-gradient-to-tr from-yellow-400 to-red-500 border-4 border-black animate-pulse">
+            <div class="text-4xl">⚡</div>
+        </button>
+    </div>
+
+    <!-- 하단 컨트롤 -->
+    <div class="w-full max-w-md p-6 bg-transparent z-20 absolute bottom-0 pb-safe-bottom">
+        <div class="flex gap-4">
+            <button onclick="changeHero('spidey')" id="btn-spidey" class="flex-1 p-3 marvel-btn bg-red-600 border-black ring-4 ring-red-400 ring-opacity-0 transition-all shadow-[8px_8px_0px_black]">
+                <div class="marvel-btn-text">
+                    <div class="text-2xl mb-1">🕷️</div>
+                    <div class="text-sm font-bold text-white comic-font">SPIDEY</div>
+                    <div class="text-[10px] text-yellow-200 leading-tight">수확/폭탄제거</div>
+                </div>
+            </button>
+            <button onclick="changeHero('hulk')" id="btn-hulk" class="flex-1 p-3 marvel-btn bg-green-600 border-black opacity-50 transition-all shadow-[2px_2px_0px_black]">
+                <div class="marvel-btn-text">
+                    <div class="text-2xl mb-1">🧟‍♂️</div>
+                    <div class="text-sm font-bold text-white comic-font">HULK</div>
+                    <div class="text-[10px] text-yellow-200 leading-tight">심기/성장</div>
+                </div>
+            </button>
+        </div>
+    </div>
+
+    <!-- 모달 -->
+    <div id="modal" class="modal-overlay">
+        <div class="bg-gray-800 p-8 rounded-2xl border-4 border-black shadow-[8px_8px_0px_#facc15] text-center max-w-xs relative">
+            <h1 id="modal-title" class="text-4xl comic-font text-yellow-400 mb-2">MISSION START</h1>
+            <p id="modal-desc" class="text-gray-300 mb-6 text-sm">목표 금액을 달성하세요!</p>
+            <div class="space-y-2 mb-6 text-left bg-gray-900 p-4 rounded-lg border-2 border-black text-sm">
+                <div class="flex justify-between"><span>🎯 목표:</span> <span id="modal-target" class="text-green-400 font-bold">$100</span></div>
+                <div class="flex justify-between"><span>⏳ 시간:</span> <span id="modal-time" class="text-red-400 font-bold">60초</span></div>
+            </div>
+            <button id="modal-btn" onclick="startLevel()" class="w-full bg-blue-600 hover:bg-blue-500 text-white font-bold py-3 px-6 rounded-lg border-4 border-black shadow-[4px_4px_0px_black] text-2xl comic-font transition transform active:scale-95">
+                START GAME
+            </button>
+            
+            <!-- PWA 설치 버튼 (조건부 표시) -->
+            <button id="pwa-install-btn" onclick="installPWA()">
+                📲 앱으로 설치하기
+            </button>
+        </div>
+    </div>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, updateDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Firebase 설정
+        const firebaseConfig = JSON.parse(__firebase_config);
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+
+        let currentUser = null;
+
+        window.saveGameProgress = async (levelIdx) => {
+            if (!currentUser) return;
+            const userDoc = doc(db, 'artifacts', appId, 'users', currentUser.uid, 'gameData');
+            try {
+                await setDoc(userDoc, { 
+                    currentLevel: levelIdx,
+                    updatedAt: new Date().toISOString()
+                }, { merge: true });
+            } catch (e) { console.error("Save Error:", e); }
+        };
+
+        const loadGameProgress = async (uid) => {
+            const userDoc = doc(db, 'artifacts', appId, 'users', uid, 'gameData');
+            const snap = await getDoc(userDoc);
+            if (snap.exists()) {
+                const data = snap.data();
+                if (data.currentLevel) {
+                    STATE.levelIdx = data.currentLevel;
+                    showLevelModal();
+                }
+            }
+            document.getElementById('loading-indicator').style.display = 'none';
+        };
+
+        const initAuth = async () => {
+            if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                await signInWithCustomToken(auth, __initial_auth_token);
+            } else {
+                await signInAnonymously(auth);
+            }
+        };
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUser = user;
+                loadGameProgress(user.uid);
+            }
+        });
+
+        initAuth();
+    </script>
+
+    <!-- PWA Logic Script (Single File Magic) -->
+    <script>
+        // 1. 동적 아이콘 생성 (512x512)
+        function generateIcon() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            
+            // 배경
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, 512, 512);
+            
+            // 텍스트 (이모지)
+            ctx.font = '350px serif';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.fillText('🕷️', 256, 280); // 약간 아래로 조정
+            
+            return canvas.toDataURL('image/png');
+        }
+
+        // 2. 매니페스트 생성 및 주입
+        function initPWA() {
+            const iconUrl = generateIcon();
+            
+            // Apple Touch Icon 업데이트
+            const linkApple = document.querySelector('link[rel="apple-touch-icon"]');
+            if(linkApple) linkApple.href = iconUrl;
+
+            // Manifest Blob 생성
+            const manifest = {
+                "name": "마블 팜: 얼티밋",
+                "short_name": "마블팜",
+                "start_url": ".",
+                "display": "standalone",
+                "background_color": "#0f172a",
+                "theme_color": "#0f172a",
+                "orientation": "portrait",
+                "icons": [
+                    {
+                        "src": iconUrl,
+                        "sizes": "512x512",
+                        "type": "image/png"
+                    },
+                    {
+                        "src": iconUrl,
+                        "sizes": "192x192",
+                        "type": "image/png"
+                    }
+                ]
+            };
+            
+            const stringManifest = JSON.stringify(manifest);
+            const blob = new Blob([stringManifest], {type: 'application/json'});
+            const manifestURL = URL.createObjectURL(blob);
+            document.querySelector('#dynamic-manifest').setAttribute('href', manifestURL);
+
+            // Service Worker 등록 (Blob 사용)
+            if ('serviceWorker' in navigator) {
+                // 간단한 캐싱 로직이 포함된 SW 코드
+                const swCode = `
+                    const CACHE_NAME = 'marvel-farm-v1';
+                    self.addEventListener('install', (e) => {
+                        self.skipWaiting();
+                    });
+                    self.addEventListener('activate', (e) => {
+                        e.waitUntil(self.clients.claim());
+                    });
+                    self.addEventListener('fetch', (e) => {
+                        // 기본적으로 네트워크 우선, 실패 시 캐시 (단일 파일이라 큰 의미는 없지만 PWA 요건 충족용)
+                        e.respondWith(
+                            fetch(e.request).catch(() => caches.match(e.request))
+                        );
+                    });
+                `;
+                const swBlob = new Blob([swCode], {type: 'application/javascript'});
+                const swUrl = URL.createObjectURL(swBlob);
+                
+                navigator.serviceWorker.register(swUrl)
+                    .then(() => console.log('SW Registered'))
+                    .catch(err => console.log('SW Fail:', err));
+            }
+        }
+
+        // 3. 설치 프롬프트 핸들링
+        let deferredPrompt;
+        window.addEventListener('beforeinstallprompt', (e) => {
+            // Chrome 67 이전 버전 등에서 자동으로 프롬프트 뜨는 것을 방지
+            e.preventDefault();
+            deferredPrompt = e;
+            // 설치 버튼 표시
+            const installBtn = document.getElementById('pwa-install-btn');
+            if(installBtn) installBtn.style.display = 'inline-block';
+        });
+
+        window.installPWA = async () => {
+            if (!deferredPrompt) return;
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+            console.log(`User response to the install prompt: ${outcome}`);
+            deferredPrompt = null;
+            document.getElementById('pwa-install-btn').style.display = 'none';
+        };
+
+        // 초기화 실행
+        initPWA();
+    </script>
+
+    <!-- 게임 로직 -->
+    <script>
+        // --- 사운드 매니저 ---
+        const AudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playSFX(type) {
+            if (AudioCtx.state === 'suspended') AudioCtx.resume();
+            const osc = AudioCtx.createOscillator();
+            const gain = AudioCtx.createGain();
+            osc.connect(gain); gain.connect(AudioCtx.destination);
+            const now = AudioCtx.currentTime;
+            switch(type) {
+                case 'plant': osc.type = 'sine'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.1); gain.gain.setValueAtTime(0.2, now); gain.gain.linearRampToValueAtTime(0, now + 0.1); osc.start(); osc.stop(now + 0.1); break;
+                // 헐크 전용 심기 효과음 (Square 파형으로 더 강한 느낌)
+                case 'hulk_plant': osc.type = 'square'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(50, now + 0.15); gain.gain.setValueAtTime(0.15, now); gain.gain.linearRampToValueAtTime(0, now + 0.15); osc.start(); osc.stop(now + 0.15); break;
+                case 'harvest': osc.type = 'triangle'; osc.frequency.setValueAtTime(800, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.1); gain.gain.setValueAtTime(0.3, now); gain.gain.linearRampToValueAtTime(0, now + 0.1); osc.start(); osc.stop(now + 0.1); break;
+                case 'defuse': osc.type = 'sine'; osc.frequency.setValueAtTime(1000, now); gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.3); osc.start(); osc.stop(now + 0.3); break;
+                case 'explode': osc.type = 'sawtooth'; osc.frequency.setValueAtTime(150, now); osc.frequency.linearRampToValueAtTime(40, now + 0.5); gain.gain.setValueAtTime(0.5, now); gain.gain.linearRampToValueAtTime(0, now + 0.5); osc.start(); osc.stop(now + 0.5); break;
+                case 'ultimate': osc.type = 'square'; osc.frequency.setValueAtTime(100, now); osc.frequency.exponentialRampToValueAtTime(2000, now + 0.8); gain.gain.setValueAtTime(0.1, now); gain.gain.linearRampToValueAtTime(0, now + 0.8); osc.start(); osc.stop(now + 0.8); break;
+                case 'popup': osc.type = 'sine'; osc.frequency.setValueAtTime(440, now); osc.frequency.setValueAtTime(660, now + 0.1); gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.4); osc.start(); osc.stop(now + 0.4); break;
+                case 'smash': osc.type = 'sine'; osc.frequency.setValueAtTime(200, now); osc.frequency.exponentialRampToValueAtTime(50, now + 0.2); gain.gain.setValueAtTime(0.4, now); gain.gain.linearRampToValueAtTime(0, now + 0.2); osc.start(); osc.stop(now + 0.2); break;
+            }
+        }
+
+        function triggerVibrate(ms) { if (navigator.vibrate) navigator.vibrate(ms); }
+
+        const LEVELS = [
+            { id: 1, target: 100, time: 60, bombRate: 0.0, title: "기본 훈련", desc: "농작물을 심고 수확하는 연습을 하세요." },
+            { id: 2, target: 200, time: 60, bombRate: 0.0, title: "기초 다지기", desc: "조금 더 빠르게 작물을 키워봅시다." },
+            { id: 3, target: 300, time: 55, bombRate: 0.02, title: "첫 번째 고난", desc: "폭탄이 나타날 수 있습니다!" },
+            { id: 4, target: 450, time: 55, bombRate: 0.04, title: "고블린의 방해", desc: "폭탄 제거에 집중하세요." },
+            { id: 5, target: 600, time: 50, bombRate: 0.06, title: "히어로의 일상", desc: "완벽한 호흡이 필요합니다." },
+            { id: 6, target: 800, time: 50, bombRate: 0.08, title: "숙련된 농부", desc: "성장이 빨라집니다." },
+            { id: 7, target: 1000, time: 45, bombRate: 0.1, title: "감마 에너지 폭주", desc: "헐크 스매시를 활용하세요!" },
+            { id: 8, target: 1250, time: 45, bombRate: 0.12, title: "뉴욕의 수호자", desc: "폭탄이 쏟아집니다." },
+            { id: 9, target: 1500, time: 40, bombRate: 0.15, title: "최후의 시험", desc: "최고의 집중력!" },
+            { id: 10, target: 2000, time: 40, bombRate: 0.18, title: "어벤져스 어셈블!", desc: "전설적인 히어로 농부!" }
+        ];
+
+        const STATE = {
+            levelIdx: 0, money: 0, timeLeft: 0, gauge: 0,
+            hero: 'spidey', tiles: [], crops: ['🌽', '🍅', '🍆', '🍇'],
+            gameInterval: null, timerInterval: null, isPlaying: false
+        };
+
+        const ELS = {
+            grid: document.getElementById('game-grid'),
+            hero: document.getElementById('hero-container'),
+            score: document.getElementById('score'),
+            ultText: document.getElementById('ult-gauge-text'),
+            ultBtn: document.getElementById('btn-ultimate'),
+            timeDisplay: document.getElementById('time-display'),
+            timeBar: document.getElementById('time-bar'),
+            levelDisplay: document.getElementById('level-display'),
+            targetScore: document.getElementById('target-score'),
+            modal: document.getElementById('modal'),
+            modalBtn: document.getElementById('modal-btn'),
+            sense: document.getElementById('sense-icon')
+        };
+
+        function init() { createGrid(); showLevelModal(); changeHero('spidey'); }
+
+        function showLevelModal() {
+            playSFX('popup');
+            const lv = LEVELS[STATE.levelIdx];
+            document.getElementById('modal-title').innerText = lv.title;
+            document.getElementById('modal-desc').innerText = lv.desc;
+            document.getElementById('modal-target').innerText = `$${lv.target}`;
+            document.getElementById('modal-time').innerText = `${lv.time}초`;
+            ELS.modalBtn.innerText = "START GAME";
+            ELS.modalBtn.onclick = startLevel;
+            ELS.modal.classList.remove('hidden');
+        }
+
+        function startLevel() {
+            ELS.modal.classList.add('hidden');
+            const lv = LEVELS[STATE.levelIdx];
+            STATE.money = 50; // 초기 자금 50
+            STATE.timeLeft = lv.time; STATE.gauge = 0; STATE.isPlaying = true;
+            ELS.levelDisplay.innerText = lv.id; ELS.targetScore.innerText = lv.target;
+            updateUI(); STATE.tiles.forEach(t => resetTile(t));
+            clearInterval(STATE.gameInterval); clearInterval(STATE.timerInterval);
+            STATE.gameInterval = setInterval(gameLoop, 500);
+            STATE.timerInterval = setInterval(() => { STATE.timeLeft--; updateTimerUI(); if (STATE.timeLeft <= 0) endGame(false); }, 1000);
+            setTimeout(() => moveHeroToTile(0), 100);
+        }
+
+        function endGame(isClear) {
+            STATE.isPlaying = false;
+            clearInterval(STATE.gameInterval); clearInterval(STATE.timerInterval);
+            const title = document.getElementById('modal-title');
+            const desc = document.getElementById('modal-desc');
+            const btn = ELS.modalBtn;
+            if (isClear) {
+                playSFX('popup');
+                title.innerText = "MISSION CLEAR!"; title.className = "text-4xl comic-font mb-2 text-green-400";
+                desc.innerText = `목표 달성! $${STATE.money}`;
+                if (STATE.levelIdx < LEVELS.length - 1) {
+                    btn.innerText = "NEXT LEVEL";
+                    btn.onclick = () => { STATE.levelIdx++; if(window.saveGameProgress) window.saveGameProgress(STATE.levelIdx); showLevelModal(); };
+                } else { desc.innerText = "모든 미션 완료!"; btn.innerText = "RESTART ALL"; btn.onclick = () => { STATE.levelIdx = 0; if(window.saveGameProgress) window.saveGameProgress(0); showLevelModal(); }; }
+            } else {
+                playSFX('explode'); triggerVibrate(200);
+                title.innerText = "GAME OVER"; title.className = "text-4xl comic-font mb-2 text-red-500"; desc.innerText = "시간 초과..."; btn.innerText = "RETRY"; btn.onclick = startLevel;
+            }
+            ELS.modal.classList.remove('hidden');
+        }
+
+        function updateTimerUI() {
+            const lv = LEVELS[STATE.levelIdx];
+            ELS.timeDisplay.innerText = STATE.timeLeft;
+            const pct = (STATE.timeLeft / lv.time) * 100;
+            ELS.timeBar.style.width = `${pct}%`;
+            ELS.timeBar.className = pct < 20 ? "h-full bg-red-500 progress-bar animate-pulse" : "h-full bg-green-500 progress-bar";
+        }
+
+        function createGrid() {
+            ELS.grid.innerHTML = ''; STATE.tiles = [];
+            for (let i = 0; i < 16; i++) {
+                const el = document.createElement('div'); el.className = 'tile flex items-center justify-center text-3xl font-bold';
+                el.onclick = () => handleInteraction(i);
+                STATE.tiles.push({ el, state: 'empty', growth: 0, bomb: false, idx: i });
+                ELS.grid.appendChild(el);
+            }
+        }
+
+        function handleInteraction(idx) {
+            if (!STATE.isPlaying) return;
+            moveHeroToTile(idx);
+            const tile = STATE.tiles[idx];
+            if (tile.bomb && STATE.hero !== 'spidey') { showFloatText(tile.el, "SPIDEY ONLY!", "red"); return; }
+            if (STATE.hero === 'spidey') {
+                if (tile.bomb) {
+                    shootWeb(idx); tile.bomb = false; tile.el.classList.remove('bomb-pulse');
+                    STATE.money += 50; playSFX('defuse'); triggerVibrate(50); showFloatText(tile.el, "DEFUSED!", "#60a5fa"); ELS.sense.classList.add('hidden');
+                } else if (tile.state === 'ripe') { shootWeb(idx); harvest(tile); }
+                else if (tile.state === 'empty') { plantAction(tile); }
+            } else { 
+                if (tile.state === 'burnt') { playSFX('smash'); hulkSmashEffect(); tile.state = 'empty'; STATE.money += 10; showFloatText(tile.el, "CLEAN!", "#4ade80"); }
+                else if (tile.state === 'planted') { playSFX('smash'); hulkSmashEffect(); tile.growth = 100; tile.state = 'ripe'; STATE.money += 5; showFloatText(tile.el, "GROW!", "#a3e635"); }
+                else if (tile.state === 'empty') { plantAction(tile); } 
+            }
+            renderTile(tile); checkWin();
+        }
+
+        function plantAction(tile) {
+            if (STATE.money >= 5) {
+                if (STATE.hero === 'hulk') playSFX('hulk_plant'); else playSFX('plant');
+                STATE.money -= 5; tile.state = 'planted'; tile.growth = 0; tile.cropType = Math.floor(Math.random() * STATE.crops.length); showFloatText(tile.el, "-$5", "#fca5a5");
+            }
+            else { showFloatText(tile.el, "No Money", "red"); }
+        }
+
+        function checkWin() { if (STATE.money >= LEVELS[STATE.levelIdx].target) endGame(true); }
+
+        function gameLoop() {
+            const lv = LEVELS[STATE.levelIdx];
+            STATE.tiles.forEach(tile => { if (tile.state === 'planted' && tile.growth < 100) { tile.growth += 5; if (tile.growth >= 100) { tile.state = 'ripe'; tile.growth = 100; } renderTile(tile); } });
+            if (Math.random() < lv.bombRate) spawnBombAttempt();
+        }
+
+        function shootWeb(targetIdx) {
+            playSFX('harvest');
+            const hRect = ELS.hero.getBoundingClientRect(); const tRect = STATE.tiles[targetIdx].el.getBoundingClientRect(); const aRect = document.getElementById('game-area').getBoundingClientRect();
+            const sX = (hRect.left + hRect.width/2) - aRect.left; const sY = (hRect.top + hRect.height/2) - aRect.top; const eX = (tRect.left + tRect.width/2) - aRect.left; const eY = (tRect.top + tRect.height/2) - aRect.top;
+            const angle = Math.atan2(eY - sY, eX - sX) * (180/Math.PI); const len = Math.hypot(eX - sX, eY - sY);
+            const web = document.createElement('div'); web.className = 'web-shot'; web.style.width = len + 'px'; web.style.left = sX + 'px'; web.style.top = sY + 'px'; web.style.transform = `rotate(${angle}deg)`;
+            document.getElementById('game-area').appendChild(web); setTimeout(() => web.remove(), 200);
+        }
+
+        function hulkSmashEffect() { document.body.style.transform = "translate(5px, 5px)"; setTimeout(() => document.body.style.transform = "none", 100); }
+
+        function spawnBombAttempt() {
+            const avail = STATE.tiles.filter(t => !t.bomb && t.state !== 'burnt'); if (!avail.length) return;
+            ELS.sense.classList.remove('hidden');
+            setTimeout(() => { if (!STATE.isPlaying) return; const target = avail[Math.floor(Math.random() * avail.length)]; target.bomb = true; target.el.classList.add('bomb-pulse'); renderTile(target); setTimeout(() => { if (target.bomb && STATE.isPlaying) explode(target); }, 3000); }, 1000);
+        }
+
+        function explode(tile) { tile.bomb = false; tile.state = 'burnt'; tile.growth = 0; tile.el.classList.remove('bomb-pulse'); STATE.money = Math.max(0, STATE.money - 50); playSFX('explode'); triggerVibrate(150); showFloatText(tile.el, "BOOM!", "red"); ELS.sense.classList.add('hidden'); renderTile(tile); updateUI(); }
+
+        function harvest(tile) { STATE.money += 20; STATE.gauge = Math.min(100, STATE.gauge + 10); tile.state = 'empty'; tile.growth = 0; showFloatText(tile.el, "+$20", "#fcd34d"); updateUI(); }
+
+        function useUltimate() {
+            if (STATE.gauge < 100) return; STATE.gauge = 0; ELS.ultBtn.classList.add('hidden'); updateUI();
+            playSFX('ultimate'); triggerVibrate(300);
+            if (STATE.hero === 'spidey') { STATE.tiles.forEach((t, i) => { if (t.bomb) { t.bomb=false; t.el.classList.remove('bomb-pulse'); } if (t.state === 'ripe') { shootWeb(i); harvest(t); } renderTile(t); }); }
+            else { hulkSmashEffect(); STATE.tiles.forEach(t => { if (t.state === 'burnt') t.state = 'empty'; if (t.state === 'planted') { t.state='ripe'; t.growth=100; } renderTile(t); }); }
+            checkWin();
+        }
+
+        function renderTile(tile) {
+            tile.el.innerHTML = '';
+            if (tile.state === 'burnt') { tile.el.style.background = '#1f2937'; tile.el.innerText = '🔥'; }
+            else { tile.el.style.background = '#451a03'; }
+            if (tile.state === 'planted') { const s = 0.5 + (tile.growth/200); tile.el.innerHTML = `<div style="transform:scale(${s})">🌱</div>`; const bar = document.createElement('div'); bar.className = 'absolute bottom-1 w-10/12 h-1 bg-gray-700 rounded'; bar.innerHTML = `<div class="h-full bg-green-500" style="width:${tile.growth}%"></div>`; tile.el.appendChild(bar); }
+            else if (tile.state === 'ripe') { tile.el.innerText = STATE.crops[tile.cropType||0]; tile.el.style.background = '#713f12'; }
+            if (tile.bomb) { const b = document.createElement('div'); b.innerText = '💣'; b.className = 'absolute z-10 animate-bounce text-2xl'; tile.el.appendChild(b); }
+        }
+
+        function resetTile(tile) { tile.state = 'empty'; tile.growth = 0; tile.bomb = false; tile.el.classList.remove('bomb-pulse'); renderTile(tile); }
+
+        function updateUI() { ELS.score.innerText = STATE.money; ELS.ultText.innerText = Math.floor(STATE.gauge) + "%"; if (STATE.gauge >= 100) ELS.ultBtn.classList.remove('hidden'); else ELS.ultBtn.classList.add('hidden'); }
+
+        function changeHero(hero) {
+            STATE.hero = hero; document.getElementById('skin-spidey').classList.toggle('hidden', hero !== 'spidey'); document.getElementById('skin-hulk').classList.toggle('hidden', hero !== 'hulk');
+            const sBtn = document.getElementById('btn-spidey'); const hBtn = document.getElementById('btn-hulk');
+            if (hero === 'spidey') { sBtn.style.opacity = "1"; sBtn.style.boxShadow = "8px 8px 0px black"; hBtn.style.opacity = "0.5"; hBtn.style.boxShadow = "2px 2px 0px black"; }
+            else { hBtn.style.opacity = "1"; hBtn.style.boxShadow = "8px 8px 0px black"; sBtn.style.opacity = "0.5"; sBtn.style.boxShadow = "2px 2px 0px black"; }
+        }
+
+        function moveHeroToTile(idx) { const tEl = STATE.tiles[idx].el; const aRect = document.getElementById('game-area').getBoundingClientRect(); const tRect = tEl.getBoundingClientRect(); const x = (tRect.left - aRect.left) + (tRect.width/2) - 35; const y = (tRect.top - aRect.top) + (tRect.height/2) - 35; ELS.hero.style.transform = `translate(${x}px, ${y}px)`; }
+
+        function showFloatText(p, t, c) { const el = document.createElement('div'); el.innerText = t; el.style.color = c; el.className = 'absolute z-50 text-xl font-bold comic-font pointer-events-none transition duration-700 ease-out'; el.style.top = '50%'; el.style.left = '50%'; el.style.transform = 'translate(-50%,-50%)'; p.appendChild(el); requestAnimationFrame(() => { el.style.transform = 'translate(-50%,-150%) scale(1.2)'; el.style.opacity = '0'; }); setTimeout(() => el.remove(), 700); }
+
+        window.onload = init;
+    </script>
+</body>
+</html>
+
